@@ -67,5 +67,28 @@ def multivariate_TSC():
     print(clf.score(x_test, y_test))
 
 
+def check_basic_motion():
+    df_train, df_labels = load_basic_motions(return_X_y=True)
+    x_train, x_test, y_train, y_test = train_test_split(
+        df_train, df_labels, random_state=42
+    )
+    labels, counts = np.unique(y_train, return_counts=True)
+    print(labels, counts)
+
+    fig, ax = plt.subplots(1, figsize=plt.figaspect(0.25))
+    for label in labels:
+        x_train.loc[y_train == label, 'dim_0'].iloc[0].plot(ax=ax, label=label)
+    plt.legend()
+    ax.set(title='Example time series', xlabel='Time')
+    plt.show()
+
+    for label in labels[:2]:
+        fig, ax = plt.subplots(1, figsize=plt.figaspect(0.25))
+        for instance in x_train.loc[y_train == label, 'dim_0']:
+            ax.plot(instance)
+        ax.set(title=f'Instancesof {label}')
+    plt.show()
+
+
 if __name__ == '__main__':
-    multivariate_TSC()
+    check_basic_motion()
