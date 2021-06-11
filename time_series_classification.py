@@ -1,16 +1,19 @@
+from pprint import pprint
+
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import Pipeline, make_pipeline
 from sktime.classification.compose import ColumnEnsembleClassifier
 from sktime.classification.dictionary_based import BOSSEnsemble
 from sktime.classification.interval_based import TimeSeriesForestClassifier
 from sktime.classification.shapelet_based import MrSEQLClassifier
 from sktime.datasets import load_arrow_head, load_basic_motions
 from sktime.transformations.panel.compose import ColumnConcatenator
-from pprint import pprint
+from sktime.transformations.panel.tsfresh import TSFreshFeatureExtractor
 
 
 def check_data(df_train: pd.DataFrame, df_labels: pd.Series):
@@ -90,5 +93,26 @@ def check_basic_motion():
     plt.show()
 
 
+# tsfreshを用いた「時系列からの自動特徴抽出」
+def tsfresh():
+    df_train, df_labels = load_basic_motions(return_X_y=True)
+    x_train, x_test, y_train, y_test = train_test_split(
+        df_train, df_labels, random_state=42
+    )
+    labels, counts = np.unique(y_train, return_counts=True)
+
+    transformer = TSFreshFeatureExtractor(default_fc_parameters='minimal')
+    extracted_features = transformer.fit_transform(x_train)
+    print('Extracted features using tsfresh')
+    print(extracted_features.head())
+
+    classifier = make_pipeline(
+        TSFreshFeatureExtractor(show_warnings=False),
+        RandomForestClassifier()
+    )
+    classifier.fit(x_train, y_train)
+    print(f'score: {classifier.score(x_test, y_test)}')
+
+
 if __name__ == '__main__':
-    check_basic_motion()
+    tsfresh()
