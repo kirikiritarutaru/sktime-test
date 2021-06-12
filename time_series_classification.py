@@ -29,6 +29,14 @@ def check_data(df_train: pd.DataFrame, df_labels: pd.Series):
     plt.show()
 
 
+# Time Series Forest Classifier: 間隔ベース (interval-based) の手法
+# 学習：
+# 1. ランダムな開始位置と長さで、時系列データを分割
+# 2. 各区間から特徴量（平均、標準偏差、勾配）を抽出
+# 3. 2で抽出した特徴量から、その区間の決定木を学習
+# 4. 決定木を複数作成
+# 予測：
+# 決定木のアンサンブルとって、予測したいデータを分類
 def univariate_TSC():
     data, labels = load_arrow_head(return_X_y=True)
     x_train, x_test, y_train, y_test = train_test_split(data, labels)
@@ -39,6 +47,12 @@ def univariate_TSC():
     print(accuracy_score(y_test, y_pred))
 
 
+# BOSS (Bag of SFA Symbols): 辞書ベース (Dictionary-based) の手法
+# 1. 長さ w のスライディングウィンドウを時系列データに適用
+# 2. ウィンドウ内の時系列データをフーリエ変換
+# 3. Multiple Coefficient Binning を使用して、最初の l 個のフーリエ項をシンボルに離散化し、Token を生成
+# 4. ウィンドウを動かしながら Token の頻度をカウント、時系列データを Token のヒストグラムに変換
+# 5. 時系列データから抽出された Token ヒストグラムで任意の分類器をトレーニング
 def multivariate_TSC():
     df_train, df_labels = load_basic_motions(return_X_y=True)
     x_train, x_test, y_train, y_test = train_test_split(
