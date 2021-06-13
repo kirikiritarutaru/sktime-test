@@ -1,5 +1,6 @@
 from pprint import pprint
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -7,13 +8,19 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline, make_pipeline
-from sktime.classification.compose import ColumnEnsembleClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sktime.classification.compose import (
+    ColumnEnsembleClassifier, ComposableTimeSeriesForestClassifier)
 from sktime.classification.dictionary_based import BOSSEnsemble
 from sktime.classification.interval_based import TimeSeriesForestClassifier
 from sktime.classification.shapelet_based import MrSEQLClassifier
 from sktime.datasets import load_arrow_head, load_basic_motions
 from sktime.transformations.panel.compose import ColumnConcatenator
+from sktime.transformations.panel.summarize import \
+    RandomIntervalFeatureExtractor
 from sktime.transformations.panel.tsfresh import TSFreshFeatureExtractor
+from sktime.utils.slope_and_trend import _slope
+from sktime.classification.interval_based import RandomIntervalSpectralForest
 
 
 def check_data(df_train: pd.DataFrame, df_labels: pd.Series):
@@ -128,5 +135,53 @@ def tsfresh():
     print(f'score: {classifier.score(x_test, y_test)}')
 
 
+# ランダムに分割した時系列データの区間から特徴抽出する
+# → feature_importanceを見ていけば、分類に重要な区間がわかる
+def check_feature_importances():
+    df_train, df_labels = load_arrow_head(return_X_y=True)
+    x_train, x_test, y_train, y_test = train_test_split(
+        df_train, df_labels, random_state=42
+    )
+
+    # 1. デフォルトの時系列データ決定木分類
+    tsf1 = ComposableTimeSeriesForestClassifier()
+    tsf1.fit(x_train, y_train)
+    fi1 = tsf1.feature_importances_
+    fig, ax = plt.subplots(1, figsize=plt.figaspect(0.25))
+    fi1.plot(ax=ax)
+    plt.show()
+    # 特徴meanの区間[130, 180]あたりが重要そう
+
+    # 2. pipelineでもかける
+    features = [np.mean, np.std, _slope]
+    steps = [
+        ('trainsform', RandomIntervalFeatureExtractor(features=features)),
+        ('clf', DecisionTreeClassifier()),
+    ]
+    base_estimator = Pipeline(steps)
+    tsf2 = ComposableTimeSeriesForestClassifier(estimator=base_estimator)
+    tsf2.fit(x_train, y_train)
+    fi2 = tsf2.feature_importances_
+    fig, ax = plt.subplots(1, figsize=plt.figaspect(0.25))
+    fi2.plot(ax=ax)
+    plt.show()
+    o
+
+
+# ランダム区間スペクトルアンサンブル RISE：Random Interval Spectral Ensemble
+#  RISEは、時系列データから以下の特徴を抽出
+#  - 適合した自己回帰係数（Fitted auto-regressive coefficients）
+#  - 推定された自己相関係数（Estimated autocorrelation coefficients）
+#  - パワースペクトル係数（Power spectrum coefficients）
+def random_interval_spectral_ensemble():
+    df_train, df_labels = load_arrow_head(return_X_y=True)
+    x_train, x_test, y_train, y_test = train_test_split(
+        df_train, df_labels, random_state=42
+    )
+    rise = RandomIntervalSpectralForest(n_estimators=10)
+    rise.fit(x_train, y_train)
+    print(rise.score(x_test, y_test))
+
+
 if __name__ == '__main__':
-    tsfresh()
+    random_interval_spectral_ensemble()
