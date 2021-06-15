@@ -21,6 +21,8 @@ from sktime.transformations.panel.summarize import \
 from sktime.transformations.panel.tsfresh import TSFreshFeatureExtractor
 from sktime.utils.slope_and_trend import _slope
 from sktime.classification.interval_based import RandomIntervalSpectralForest
+from sktime.classification.distance_based import KNeighborsTimeSeriesClassifier
+from sktime.utils import all_estimators
 
 
 def check_data(df_train: pd.DataFrame, df_labels: pd.Series):
@@ -183,5 +185,22 @@ def random_interval_spectral_ensemble():
     print(rise.score(x_test, y_test))
 
 
+# Dynamic Time Waping 距離に基づいたKNN
+def ktsc():
+    df_train, df_labels = load_basic_motions(return_X_y=True)
+    x_train, x_test, y_train, y_test = train_test_split(
+        df_train, df_labels, random_state=42
+    )
+    labels, counts = np.unique(y_train, return_counts=True)
+
+    knn = KNeighborsTimeSeriesClassifier(n_neighbors=1, distance='dtw')
+    knn.fit(x_train, y_train)
+    print(knn.score(x_test, y_test))
+
+
+def list_all_TS_estimators():
+    print(all_estimators(estimator_types='classifier'))
+
+
 if __name__ == '__main__':
-    random_interval_spectral_ensemble()
+    list_all_TS_estimators()
