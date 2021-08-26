@@ -96,7 +96,6 @@ def apply_ES(y_train: pd.Series, y_test: pd.Series):
 # Error-Trend-Seasonality （状態空間指数平滑化法）
 def apply_ETS(y_train: pd.Series, y_test: pd.Series):
     forecaster = AutoETS(auto=True, sp=12, n_jobs=-1)
-    model = forecaster.fit(y_train)
     fh = np.arange(len(y_test))+1
     y_pred = forecaster.predict(fh)
     print(mape_loss(y_test, y_pred))
